@@ -86,11 +86,7 @@ namespace Persona_work_management.Service
 			task.Status = !string.IsNullOrEmpty(taskDTO.Status) ? Enum.Parse<Status>(taskDTO.Status) : task.Status;
 			task.Color = !string.IsNullOrEmpty(taskDTO.Color) ? Enum.Parse<LabelColor>(taskDTO.Color) : task.Color;
 
-			var notis = await _notificationService.GetAllByTaskId(id);
-			foreach (var item in notis)
-			{
-				item.NotificationTime = task.DueDate - TimeSpan.FromTicks(item.Offset);
-			}
+			
 			// Lưu các thay đổi vào cơ sở dữ liệu
 			await _unitOfWork.CompleteAsync();
 		}

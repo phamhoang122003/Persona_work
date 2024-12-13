@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Persona_work_management.DTO;
 using Persona_work_management.Entities;
 using Persona_work_management.Service.Interfaces;
+using System.Threading.Tasks;
 
 namespace Persona_work_management.Controllers
 {
@@ -59,15 +60,15 @@ namespace Persona_work_management.Controllers
 			notificationDTO.TaskId = newTask.Id;
 			notificationDTO.Offset = TimeSpan.FromDays(1).Ticks;
 			notificationDTO.NotificationTime = newTask.DueDate - TimeSpan.FromTicks(notificationDTO.Offset);
-			notificationDTO.Message = "Task" + newTask.Title + " is due in 1 day.";
+			notificationDTO.Message = "Task " + newTask.Title + " is due in 1 day.";
 			await _notificationService.CreateNotification(notificationDTO);
 
 
 			NotificationDTO notificationDTO1 = new NotificationDTO();
 			notificationDTO1.TaskId = newTask.Id;
 			notificationDTO1.Offset = TimeSpan.FromMinutes(5).Ticks;
-			notificationDTO1.NotificationTime = newTask.DueDate - TimeSpan.FromTicks(notificationDTO.Offset);
-			notificationDTO1.Message = "Task" + newTask.Title + " is due in 5 minutes.";
+			notificationDTO1.NotificationTime = newTask.DueDate - TimeSpan.FromTicks(notificationDTO1.Offset);
+			notificationDTO1.Message = "Task " + newTask.Title + " is due in 5 minutes.";
 			await _notificationService.CreateNotification(notificationDTO1);
 
 
@@ -80,6 +81,15 @@ namespace Persona_work_management.Controllers
 			if(taskDTO == null || id != taskDTO.Id)
 			{
 				return BadRequest();
+			}
+			var notis = await _notificationService.GetAllByTaskId(id);
+			foreach (var item in notis)
+			{
+				// Cập nhật thời gian thông báo
+
+				item.NotificationTime = taskDTO.DueDate - TimeSpan.FromTicks(item.Offset);
+				await _notificationService.UpdateNotification(item,item.Id);
+				
 			}
 			await _tasksService.UpdateTask(taskDTO,id);
 

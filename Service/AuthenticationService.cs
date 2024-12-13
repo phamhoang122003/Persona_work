@@ -58,7 +58,8 @@ namespace Persona_work_management.Service
 			{
 				new Claim(JwtRegisteredClaimNames.Sub, user.UserName),  // Người dùng (username)
 				new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // ID của token
-				new Claim(ClaimTypes.Role, user.Role.ToString())  // Thêm role vào claim
+				new Claim(ClaimTypes.Role, user.Role.ToString()) , // Thêm role vào claim
+				new Claim("id", user.Id.ToString())
     };
 
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey));

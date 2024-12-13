@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Persona_work_management.DTO;
 using Persona_work_management.Service;
+using Persona_work_management.Service.Interfaces;
 
 namespace Persona_work_management.Controllers
 {
@@ -9,13 +11,15 @@ namespace Persona_work_management.Controllers
 	[ApiController]
 	public class NotificationController : ControllerBase
 	{
-		private readonly NotificationService _notificationService;
+		private readonly INotificationService _notificationService;
 
-		public NotificationController(NotificationService notificationService)
+		public NotificationController(INotificationService notificationService)
 		{
 			_notificationService = notificationService;
 		}
+
 		[HttpGet]
+		[Authorize(Roles = "Admin")]
 		public async Task<ActionResult<IEnumerable<NotificationDTO>>> GetAll()
 		{
 			var notifis = await _notificationService.GetNotification();
@@ -31,16 +35,27 @@ namespace Persona_work_management.Controllers
 			}
 			return Ok(notification);
 		}
+		[HttpGet("/task/{id}")]
+		public async Task<ActionResult<NotificationDTO>> GetAllbyTaskId(int id)
+		{
+			var notification = await _notificationService.GetAllByTaskId(id);
+			if (notification == null)
+			{
+				return NotFound();
+			}
+			return Ok(notification);
+		}
 
 		[HttpPost]
-		public async Task<ActionResult<NotificationDTO>> Post(NotificationDTO notification)
+		public async Task<ActionResult<NotificationDTO>> Post([FromBody] NotificationDTO notification)
 		{
+
 			var newNoti = await _notificationService.CreateNotification(notification);
 			return CreatedAtAction(nameof(GetOne), new { id = newNoti.Id }, newNoti);
 		}
 
-		[HttpPut("id")]
-		public async Task<ActionResult<NotificationDTO>> Update([FromBody]NotificationDTO notification, int id) 
+		[HttpPut("{id}")]
+		public async Task<ActionResult<NotificationDTO>> Update([FromBody] NotificationDTO notification, int id) 
 		{
 			if(notification == null || id != notification.Id)
 			{

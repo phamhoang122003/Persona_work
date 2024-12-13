@@ -71,10 +71,24 @@ builder.Services.AddAuthorization(options =>
 	options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));  // Chỉ cho phép người dùng có role "Admin" truy cập
 });
 
+
+// Cấu hình dịch vụ CORS
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy("AllowSpecificOrigin", policy =>
+	{
+		policy.WithOrigins("http://localhost:5173") // Địa chỉ front-end
+			  .AllowAnyHeader()
+			  .AllowAnyMethod();
+	});
+});
+
+
 var app = builder.Build();
 
 
-
+// Sử dụng CORS
+app.UseCors("AllowSpecificOrigin");
 
 
 // Configure the HTTP request pipeline.

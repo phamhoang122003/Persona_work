@@ -1,4 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Persona_work_management.DAL;
 using Persona_work_management.DTO;
 using Persona_work_management.Entities;
 using Persona_work_management.Repository.Interfaces;
@@ -38,6 +42,7 @@ namespace Persona_work_management.Service
 			}
 		}
 
+		
 		public async Task<IEnumerable<UserDTO>> GetUser()
 		{
 			var users = await _unitOfWork.UsersRepository.GetAllAsync();
