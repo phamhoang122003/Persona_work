@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persona_work_management.DAL;
 using Persona_work_management.DTO;
-using Persona_work_management.Repository.Interfaces;
 using Persona_work_management.Service.Interfaces;
-using System.Net.Mail;
+using Persona_work_management.Repository.Interfaces;
 using System.Security.Cryptography;
+using System.Net.Mail;
+using System.Threading.Tasks;
+using AutoMapper;
 
 namespace Persona_work_management.Controllers
 {
@@ -18,15 +20,18 @@ namespace Persona_work_management.Controllers
 		private readonly ManagementDbContext _context;
 		private readonly IEmailService _emailService;
 		private readonly IUnitOfWork _unitOfWork;
+		private readonly IMapper _mapper;
 
-		public UsersController(IUsersService usersService, ManagementDbContext context, IEmailService emailService, IUnitOfWork unitOfWork)
+		public UsersController(IUsersService usersService, ManagementDbContext context, IEmailService emailService, IUnitOfWork unitOfWork, IMapper mapper)
 		{
 			_usersService = usersService;
 			_context = context;
 			_emailService = emailService;
 			_unitOfWork = unitOfWork;
+			_mapper = mapper;
 		}
 
+		// Lấy tất cả người dùng (Admin chỉ có thể truy cập)
 		[HttpGet]
 		[Authorize(Roles = "Admin")]
 		public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllUser()
@@ -34,74 +39,37 @@ namespace Persona_work_management.Controllers
 			var users = await _usersService.GetUser();
 			return Ok(users);
 		}
+
+		// Lấy thông tin người dùng theo ID
 		[HttpGet("{id}")]
-		[Authorize(Roles = "Admin")]
-		public async Task<ActionResult<UserDTO>> GetUser(int id) 
+		public async Task<ActionResult<UserDTO>> GetUser(int id)
 		{
 			var user = await _usersService.GetUserById(id);
 			return Ok(user);
 		}
+
+		// Tạo người dùng mới
 		[HttpPost]
-		public async Task<ActionResult<UserDTO>> CreateUser(UserDTO userDTO) 
+		public async Task<ActionResult<UserDTO>> CreateUser([FromForm] UserCreateDTO userCreateDto)
 		{
-			var user = await _usersService.CreateUser(userDTO);
-			return CreatedAtAction(nameof(GetUser),new {id = user.Id}, user);
+			var user = await _usersService.CreateUser(userCreateDto);
+			var userDto = _mapper.Map<UserDTO>(user);
+			return CreatedAtAction(nameof(GetUser), new { id = userDto.Id }, userDto);
 		}
+
+		// Cập nhật người dùng
 		[HttpPut("{id}")]
-		public async Task<ActionResult<UserDTO>> UpdateUser(UserDTO userDTO,int id)
+		public async Task<ActionResult<UserDTO>> UpdateUser([FromForm] UserUpdateDTO userDTO, int id)
 		{
-			if (userDTO == null|| userDTO.Id != id )
+			if (userDTO == null || userDTO.Id != id)
 			{
 				return BadRequest();
 			}
-			await _usersService.UpdateUser(userDTO,id);
+			await _usersService.UpdateUser(userDTO, id);
 			return Ok();
-		}
-		// send email for forgot password
+		}	
 
-		//	[HttpGet("forgot_password/{email}")]
-		//	public async Task<IActionResult> ForgotPassword(string email)
-		//	{
-		//	var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-		//	if (user == null)
-		//	{
-		// Nếu không tìm thấy user, tránh lộ thông tin. Cung cấp thông báo chung.
-		//		return Ok(new { message = "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn khôi phục mật khẩu." });
-		//	}
-
-		// Kiểm tra và xoá token cũ nếu có
-		//if (!string.IsNullOrEmpty(user.ResetPasswordToken))
-		////	{
-		//		user.ResetPasswordToken = null;
-		//		user.ResetPasswordExpiry = null;
-		//	}
-
-		// 1. Tạo mã token 6 chữ số ngẫu nhiên
-		//	var resetToken = GenerateRandomToken();
-		//	user.ResetPasswordToken = resetToken;
-		//user.ResetPasswordExpiry = DateTime.UtcNow.AddMinutes(10); // Thời gian hết hạn token, ví dụ là 10 phút
-
-		//	try
-		//{
-		// 2. Cập nhật thông tin người dùng với token mới
-		//	await _context.SaveChangesAsync();
-
-		// 3. Gửi email chứa token
-		//	await _emailService.SendEmailAsync(email, "Mã xác thực đăng nhập",
-		//		$"Mã xác thực của bạn là: <b>{resetToken}</b>. Mã này có hiệu lực trong vòng 10 phút.");
-		//	}
-		//	catch (Exception ex)
-		//	{
-		// Ghi log lỗi nếu không gửi được email hoặc lưu thay đổi thất bại
-		//	return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể gửi email hoặc lưu thay đổi." });
-		//}
-
-		// Trả về thông báo chung
-		//	return Ok(new { message = "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi mã xác thực đăng nhập." });
-		//}
-
-
+		// Quên mật khẩu và gửi email reset
 		[HttpGet("forgot_password/{email}")]
 		public async Task<IActionResult> ForgotPassword(string email)
 		{
@@ -109,11 +77,10 @@ namespace Persona_work_management.Controllers
 
 			if (user == null)
 			{
-				// Tránh lộ thông tin về user.
 				return Ok(new { message = "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn khôi phục mật khẩu." });
 			}
 
-			// Xoá token cũ nếu có
+			// Xóa token cũ nếu có
 			if (!string.IsNullOrEmpty(user.ResetPasswordToken))
 			{
 				user.ResetPasswordToken = null;
@@ -127,28 +94,25 @@ namespace Persona_work_management.Controllers
 
 			try
 			{
-				// Lưu token vào cơ sở dữ liệu
+				// Lưu thông tin token vào DB
 				await _context.SaveChangesAsync();
 
-				// Tạo URL reset mật khẩu (định hướng theo frontend)
+				// Tạo URL reset mật khẩu
 				var resetUrl = $"http://localhost:5173/reset-password/{user.Id}/{resetToken}";
 
-				// Gửi email với đường dẫn reset mật khẩu
+				// Gửi email với link reset mật khẩu
 				await _emailService.SendEmailAsync(email, "Khôi phục mật khẩu",
 					$"Nhấp vào liên kết sau để khôi phục mật khẩu: <a href='{resetUrl}'>{resetUrl}</a>. Liên kết này có hiệu lực trong vòng 10 phút.");
 			}
 			catch (Exception ex)
 			{
-				// Ghi log lỗi nếu xảy ra
 				return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Không thể gửi email hoặc lưu thay đổi." });
 			}
 
-			// Trả về thông báo chung
 			return Ok(new { message = "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn khôi phục mật khẩu." });
 		}
 
-
-
+		// Tạo mã reset mật khẩu ngẫu nhiên (6 chữ số)
 		private string GenerateRandomToken()
 		{
 			using (var rng = new RNGCryptoServiceProvider())
@@ -160,7 +124,7 @@ namespace Persona_work_management.Controllers
 			}
 		}
 
-
+		// Reset mật khẩu bằng token
 		[HttpPut("reset-password/{userId}/{token}")]
 		public async Task<IActionResult> ResetPassword(int userId, string token, [FromBody] ResetPasswordModel request)
 		{
@@ -184,9 +148,5 @@ namespace Persona_work_management.Controllers
 
 			return Ok(new { message = "Mật khẩu đã được đặt lại thành công." });
 		}
-
-
-
-
 	}
 }

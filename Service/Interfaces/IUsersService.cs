@@ -8,10 +8,10 @@ namespace Persona_work_management.Service.Interfaces
 		Task<IEnumerable<UserDTO>> GetUser();
 		Task<UserDTO> GetUserById(int id);
 
-		Task UpdateUser(UserDTO userDTO, int id);
+		Task UpdateUser(UserUpdateDTO userDTO,int id);
 		Task DeleteUser(int id);
 
-		Task<UserDTO> CreateUser(UserDTO userDTO);
+		Task<UserDTO> CreateUser(UserCreateDTO userDTO);
 		public string HashPassword(string password);
 		public bool VerifyPassword(string password, string storedHashedPassword);
 	}

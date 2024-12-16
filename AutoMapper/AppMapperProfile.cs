@@ -25,17 +25,18 @@ namespace Persona_work_management.AutoMapper
 				.ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId)) // Ánh xạ UserId từ User entity
 				.ForMember(dest => dest.Notifications, opt => opt.Ignore()); // Bỏ qua Notifications để tránh vòng lặp
 
-	
+
 
 			// Mapping cho User
 			CreateMap<Users, UserDTO>()
-				.ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()))   // Chuyển từ enum sang chuỗi
-				.ForMember(dest => dest.Tasks, opt => opt.Ignore()); // Bỏ qua Tasks để tránh vòng lặp
+				.ForMember(dest => dest.AvatarUrl, opt => opt.MapFrom(src => src.Avatar != null ? $"/uploads/avatars/{src.Avatar}" : null))
+				.ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()));
 
-			// Mapping cho User
-			CreateMap<UserDTO, Users>()
-				.ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.ToString()))   // Chuyển từ enum sang chuỗi
-				.ForMember(dest => dest.Tasks, opt => opt.Ignore()); // Bỏ qua Tasks để tránh vòng lặp
+			CreateMap<UserCreateDTO, Users>()
+				.ForMember(dest => dest.Avatar, opt => opt.Ignore()); // Avatar xử lý riêng
+
+			CreateMap<UserUpdateDTO, Users>()
+				.ForMember(dest => dest.Avatar, opt => opt.Ignore()); // Avatar xử lý riêng
 
 		}
 
